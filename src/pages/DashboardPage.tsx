@@ -64,13 +64,17 @@ export default function DashboardPage() {
     if (!window.confirm('Proses check-out untuk tamu ini?')) return;
     try {
       const token = localStorage.getItem('adminToken');
-      await fetch(`/api/guests/${guestId}/checkout`, { 
+      const res = await fetch(`/api/guests/${guestId}/checkout`, { 
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`
         }
       });
-      // Socket will handle UI update
+      if (res.ok) {
+        setGuests(prev => prev.filter(g => g.id !== guestId));
+      } else {
+        alert('Gagal checkout');
+      }
     } catch (err) {
       alert('Gagal checkout');
     }
