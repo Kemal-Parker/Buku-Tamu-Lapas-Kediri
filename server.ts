@@ -126,17 +126,9 @@ async function startServer() {
   app.post('/api/qr/generate', requireAdmin, async (req, res) => {
     try {
       const { validHours = 24 } = req.body;
-      // Using UUID as a simple secure token for now. In real app, might be signed JWT.
-      const token = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+      const token = jwt.sign({ type: 'qr_checkin' }, JWT_SECRET, { expiresIn: `${validHours}h` });
       const expiredAt = new Date(Date.now() + validHours * 60 * 60 * 1000);
-      
-      const qrToken = await prisma.qrToken.create({
-        data: { token, expiredAt }
-      });
-      
-      // Provide full URL assuming app is hosted at frontend origin
-      // In production, we'd use process.env.APP_URL
-      res.json({ token: qrToken.token, expiredAt: qrToken.expiredAt });
+      res.json({ token, expiredAt });
     } catch(err) {
       console.error('Generate QR error:', err);
       res.status(500).json({ error: 'Failed to generate QR token' });
@@ -144,23 +136,22 @@ async function startServer() {
   });
 
   // Validate QR Token
-  app.get('/api/qr/validate', async (req, res) => {
+  app.get('/api/qr/validate', (req, res) => {
     try {
       const { token } = req.query;
       if (!token || typeof token !== 'string') {
         return res.status(400).json({ valid: false, error: 'Token missing' });
       }
       
-      const qrToken = await prisma.qrToken.findUnique({ where: { token } });
-      if (!qrToken || !qrToken.active) {
-        return res.json({ valid: false, reason: 'invalid_or_inactive' });
+      try {
+        const decoded = jwt.verify(token, JWT_SECRET) as any;
+        if (decoded.type !== 'qr_checkin') {
+          return res.json({ valid: false, reason: 'invalid_type' });
+        }
+        return res.json({ valid: true });
+      } catch(err) {
+        return res.json({ valid: false, reason: 'unauthorized_or_expired' });
       }
-      
-      if (new Date() > qrToken.expiredAt) {
-         return res.json({ valid: false, reason: 'expired' });
-      }
-      
-      return res.json({ valid: true });
     } catch (err) {
         return res.status(500).json({ error: 'Failed to validate QR' });
     }

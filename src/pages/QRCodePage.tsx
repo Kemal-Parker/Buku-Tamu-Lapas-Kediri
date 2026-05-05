@@ -9,7 +9,7 @@ export default function QRCodePage() {
   
   const qrRef = useRef<SVGSVGElement>(null);
 
-  const baseUrl = window.location.origin.replace('ais-dev-', 'ais-pre-');
+  const baseUrl = window.location.origin;
   const qrUrl = token ? `${baseUrl}/checkin?token=${token}` : '';
 
   const generateToken = async () => {
