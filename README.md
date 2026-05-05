@@ -14,10 +14,6 @@ Sistem Buku Tamu Digital (e-Visitor) dirancang khusus untuk Lembaga Pemasyarakat
 
 - **Frontend**: HTML, CSS, JavaScript
 - **Hosting / Deployment**: Cloud Platform (Google Cloud Run / Hosting Service)
-- **Database**: Relational Database Management System (RDBMS)
-
-## 🚀 Panduan Instalasi
-
-Ikuti langkah-langkah berikut untuk menjalankan proyek ini di lingkungan lokal Anda:
+- **Database**: Relational Database Management System (RDBMS) 
 
 1. **Clone Repository Ini:**
