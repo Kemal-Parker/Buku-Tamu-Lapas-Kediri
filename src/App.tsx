@@ -8,11 +8,17 @@ import DashboardPage from './pages/DashboardPage';
 import CheckInPage from './pages/CheckInPage';
 import HistoryPage from './pages/HistoryPage';
 import QRCodePage from './pages/QRCodePage';
-import { LayoutDashboard, History, QrCode, ClipboardList } from 'lucide-react';
-import { useEffect } from 'react';
+import { LayoutDashboard, History, QrCode, ClipboardList, Menu, X } from 'lucide-react';
+import { useEffect, useState } from 'react';
 
 function AdminLayout({ children }: { children: React.ReactNode }) {
   const location = useLocation();
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+  useEffect(() => {
+    setIsSidebarOpen(false);
+  }, [location.pathname]);
+
   const navItems = [
     { name: 'Dashboard', path: '/', icon: LayoutDashboard },
     { name: 'Riwayat Tamu', path: '/history', icon: History },
@@ -20,16 +26,33 @@ function AdminLayout({ children }: { children: React.ReactNode }) {
   ];
 
   return (
-    <div className="flex h-screen bg-gray-50">
-      <aside className="w-64 bg-white border-r border-gray-200">
-        <div className="p-6">
-          <h1 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-            <ClipboardList className="text-blue-600" />
-            Buku Tamu LAPAS
-          </h1>
-          <p className="text-sm text-gray-500 mt-1">Kelas 2A Kediri</p>
+    <div className="flex h-screen bg-gray-50 overflow-hidden">
+      {/* Sidebar Overlay */}
+      {isSidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-black/50 z-20 transition-opacity"
+          onClick={() => setIsSidebarOpen(false)}
+        />
+      )}
+
+      {/* Sidebar */}
+      <aside className={`fixed inset-y-0 left-0 w-64 bg-white border-r border-gray-200 z-30 transform transition-transform duration-200 ease-in-out flex flex-col ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+        <div className="p-6 flex items-start justify-between">
+          <div>
+            <h1 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+              <ClipboardList className="text-blue-600 w-5 h-5" />
+              Buku Tamu LAPAS
+            </h1>
+            <p className="text-sm text-gray-500 mt-1 ml-7">Kelas 2A Kediri</p>
+          </div>
+          <button 
+            onClick={() => setIsSidebarOpen(false)}
+            className="p-2 text-gray-500 hover:bg-gray-100 rounded-md -mt-2 -mr-2"
+          >
+            <X className="w-5 h-5" />
+          </button>
         </div>
-        <nav className="mt-6 px-4 space-y-1">
+        <nav className="mt-2 px-4 space-y-1 flex-1 overflow-y-auto">
           {navItems.map((item) => {
             const isActive = location.pathname === item.path;
             const Icon = item.icon;
@@ -50,11 +73,29 @@ function AdminLayout({ children }: { children: React.ReactNode }) {
           })}
         </nav>
       </aside>
-      <main className="flex-1 overflow-auto">
-        <div className="p-8">
-          {children}
-        </div>
-      </main>
+
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col overflow-hidden w-full">
+        {/* Header */}
+        <header className="bg-white border-b border-gray-200 px-4 py-3 flex items-center gap-3 w-full">
+          <button 
+            onClick={() => setIsSidebarOpen(true)}
+            className="p-2 text-gray-600 hover:bg-gray-100 rounded-md"
+          >
+            <Menu className="w-5 h-5" />
+          </button>
+          <div className="font-bold text-gray-900 flex items-center gap-2">
+            <ClipboardList className="text-blue-600 w-5 h-5" />
+            Admin Panel
+          </div>
+        </header>
+
+        <main className="flex-1 overflow-auto">
+          <div className="p-4 sm:p-6 md:p-8">
+            {children}
+          </div>
+        </main>
+      </div>
     </div>
   );
 }
