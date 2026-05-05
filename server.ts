@@ -71,7 +71,7 @@ async function startServer() {
       });
       
       // Real-time update
-      io.emit('guest:checked-in', { id: guest.id });
+      io.emit('guest:checked-in', guest);
       res.json(guest);
     } catch (err: any) {
       console.error('Checkin error:', err);
@@ -93,6 +93,24 @@ async function startServer() {
     } catch (err: any) {
       console.error('Checkout error:', err);
       res.status(500).json({ error: 'Failed to check out' });
+    }
+  });
+
+  // Update Photo
+  app.post('/api/guests/:id/photo', requireAdmin, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { photoUrl } = req.body;
+      const guest = await prisma.guest.update({
+        where: { id },
+        data: { photoUrl }
+      });
+      
+      io.emit('guest:photo-updated', guest);
+      res.json(guest);
+    } catch (err: any) {
+      console.error('Update photo error:', err);
+      res.status(500).json({ error: 'Failed to update photo' });
     }
   });
 

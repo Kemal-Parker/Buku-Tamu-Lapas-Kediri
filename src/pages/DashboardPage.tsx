@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { format } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
-import { UserCheck, Clock, UserX } from 'lucide-react';
+import { UserCheck, Clock, UserX, Camera, X } from 'lucide-react';
 import { io } from 'socket.io-client';
+import Webcam from 'react-webcam';
 
 interface Guest {
   id: string;
@@ -18,18 +19,30 @@ interface Guest {
 export default function DashboardPage() {
   const [guests, setGuests] = useState<Guest[]>([]);
   const [loading, setLoading] = useState(true);
+  
+  const [takingPhotoFor, setTakingPhotoFor] = useState<string | null>(null);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const webcamRef = useRef<Webcam>(null);
 
   useEffect(() => {
     fetchGuests();
 
     const socket = io(); // Connects to same port
     
-    socket.on('guest:checked-in', () => {
-      fetchGuests();
+    socket.on('guest:checked-in', (newGuest: Guest) => {
+      setGuests((prev) => {
+        // Prevent duplicates
+        if (prev.some(g => g.id === newGuest.id)) return prev;
+        return [newGuest, ...prev];
+      });
     });
 
     socket.on('guest:checked-out', (updatedGuest: Guest) => {
       setGuests((prev) => prev.filter(g => g.id !== updatedGuest.id));
+    });
+
+    socket.on('guest:photo-updated', (updatedGuest: Guest) => {
+      setGuests((prev) => prev.map(g => g.id === updatedGuest.id ? { ...g, photoUrl: updatedGuest.photoUrl } : g));
     });
 
     // Fallback polling every 5 seconds
@@ -85,6 +98,39 @@ export default function DashboardPage() {
       alert('Gagal checkout');
     }
   };
+
+  const handleCapturePhoto = useCallback(async () => {
+    if (!takingPhotoFor || !webcamRef.current) return;
+    
+    const imageSrc = webcamRef.current.getScreenshot();
+    if (!imageSrc) {
+      alert("Gagal mengambil gambar. Pastikan kamera terhubung.");
+      return;
+    }
+
+    setUploadingPhoto(true);
+    try {
+      const token = localStorage.getItem('adminToken');
+      const res = await fetch(`/api/guests/${takingPhotoFor}/photo`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ photoUrl: imageSrc })
+      });
+      
+      if (res.ok) {
+        setTakingPhotoFor(null);
+      } else {
+        alert('Gagal menyimpan foto');
+      }
+    } catch(e) {
+      alert('Gagal menyimpan foto');
+    } finally {
+      setUploadingPhoto(false);
+    }
+  }, [takingPhotoFor, webcamRef]);
 
   return (
     <div>
@@ -159,13 +205,24 @@ export default function DashboardPage() {
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <button
-                        onClick={() => handleCheckout(guest.id)}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-red-50 text-red-700 hover:bg-red-100 rounded-md text-xs font-medium transition-colors"
-                      >
-                        <UserX className="w-3.5 h-3.5" />
-                        Check-out
-                      </button>
+                      <div className="flex flex-col gap-2">
+                        {!guest.photoUrl && (
+                          <button
+                            onClick={() => setTakingPhotoFor(guest.id)}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-md text-xs font-medium transition-colors w-fit"
+                          >
+                            <Camera className="w-3.5 h-3.5" />
+                            Ambil Foto
+                          </button>
+                        )}
+                        <button
+                          onClick={() => handleCheckout(guest.id)}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-red-50 text-red-700 hover:bg-red-100 rounded-md text-xs font-medium transition-colors w-fit"
+                        >
+                          <UserX className="w-3.5 h-3.5" />
+                          Check-out
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -174,6 +231,54 @@ export default function DashboardPage() {
           </table>
         </div>
       </div>
+      
+      {takingPhotoFor && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60">
+          <div className="bg-white rounded-2xl overflow-hidden shadow-2xl max-w-sm w-full">
+            <div className="p-4 border-b border-gray-100 flex items-center justify-between">
+              <h3 className="font-semibold text-gray-900">Ambil Foto Pengunjung</h3>
+              <button 
+                onClick={() => setTakingPhotoFor(null)}
+                className="text-gray-400 hover:bg-gray-100 p-1 rounded-full transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <div className="p-4">
+              <div className="rounded-xl overflow-hidden bg-black aspect-[4/3] relative min-h-[250px]">
+                <Webcam
+                  ref={webcamRef}
+                  audio={false}
+                  screenshotFormat="image/jpeg"
+                  className="w-full h-full object-cover"
+                />
+              </div>
+            </div>
+            
+            <div className="p-4 border-t border-gray-100 bg-gray-50 flex justify-end gap-3">
+              <button
+                onClick={() => setTakingPhotoFor(null)}
+                className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 transition-colors"
+              >
+                Batal
+              </button>
+              <button
+                onClick={handleCapturePhoto}
+                disabled={uploadingPhoto}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition disabled:opacity-70 flex items-center gap-2"
+              >
+                {uploadingPhoto ? 'Menyimpan...' : (
+                  <>
+                    <Camera className="w-4 h-4" />
+                    Simpan Foto
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

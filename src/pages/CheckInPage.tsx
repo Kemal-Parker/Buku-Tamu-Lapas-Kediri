@@ -56,10 +56,6 @@ export default function CheckInPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.photoUrl) {
-      alert('Silahkan ambil foto selfie terlebih dahulu.');
-      return;
-    }
     setSubmitting(true);
     try {
       const res = await fetch('/api/guests/checkin', {
@@ -68,7 +64,7 @@ export default function CheckInPage() {
         body: JSON.stringify({ ...formData, token })
       });
       if (res.ok) {
-        setStep(3); // Success
+        setStep(2); // Success
       } else {
         try {
           const errData = await res.json();
@@ -119,7 +115,7 @@ export default function CheckInPage() {
                 1. Data Diri
               </h2>
               <form 
-                onSubmit={(e) => { e.preventDefault(); setStep(2); }}
+                onSubmit={handleSubmit}
                 className="space-y-4"
               >
                 <div>
@@ -146,74 +142,14 @@ export default function CheckInPage() {
                     className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none transition h-24 resize-none" 
                     placeholder="Jelaskan tujuan kunjungan Anda" />
                 </div>
-                <button type="submit" className="w-full flex items-center justify-center gap-2 py-3.5 bg-blue-600 text-white font-medium rounded-xl hover:bg-blue-700 mt-6 shadow-sm shadow-blue-200 transition">
-                  Lanjut ke Foto <ChevronRight className="w-4 h-4" />
+                <button type="submit" disabled={submitting} className="w-full flex items-center justify-center gap-2 py-3.5 bg-blue-600 text-white font-medium rounded-xl hover:bg-blue-700 mt-6 shadow-sm shadow-blue-200 transition disabled:opacity-70">
+                  {submitting ? 'Memproses...' : 'Kirim & Check-in'} <ChevronRight className="w-4 h-4" />
                 </button>
               </form>
             </div>
           )}
 
           {step === 2 && (
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 flex flex-col h-full">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                2. Verifikasi Wajah
-              </h2>
-              
-              <div className="flex-1 flex flex-col justify-center">
-                {!formData.photoUrl ? (
-                  <div className="rounded-2xl overflow-hidden bg-black aspect-[3/4] relative shadow-inner">
-                    <Webcam
-                      ref={webcamRef}
-                      audio={false}
-                      screenshotFormat="image/jpeg"
-                      videoConstraints={{ facingMode: "user" }}
-                      className="w-full h-full object-cover"
-                    />
-                    <div className="absolute inset-0 border-[6px] border-black/10 pointer-events-none rounded-2xl" />
-                  </div>
-                ) : (
-                  <div className="rounded-2xl overflow-hidden bg-gray-100 aspect-[3/4] relative shadow-inner">
-                    <img src={formData.photoUrl} alt="Selfie" className="w-full h-full object-cover" />
-                  </div>
-                )}
-              </div>
-
-              <div className="mt-6 flex flex-col gap-3">
-                {!formData.photoUrl ? (
-                  <button 
-                    onClick={handleCapture}
-                    className="w-full py-4 bg-gray-900 text-white font-medium rounded-xl flex items-center justify-center gap-2"
-                  >
-                    <Camera className="w-5 h-5" /> Ambil Foto
-                  </button>
-                ) : (
-                  <>
-                    <button 
-                      onClick={() => setFormData({ ...formData, photoUrl: '' })}
-                      className="w-full py-3 bg-gray-100 font-medium text-gray-700 rounded-xl"
-                    >
-                      Ulangi Foto
-                    </button>
-                    <button 
-                      onClick={handleSubmit} disabled={submitting}
-                      className="w-full py-3.5 bg-blue-600 font-medium text-white rounded-xl shadow-sm shadow-blue-200 disabled:opacity-70 flex items-center justify-center"
-                    >
-                      {submitting ? 'Memproses...' : 'Kirim & Check-in'}
-                    </button>
-                  </>
-                )}
-                
-                <button 
-                  onClick={() => setStep(1)}
-                  className="mt-2 text-sm text-gray-500 font-medium text-center"
-                >
-                  Kembali ke Form
-                </button>
-              </div>
-            </div>
-          )}
-
-          {step === 3 && (
             <div className="h-full flex flex-col items-center justify-center py-12 text-center">
               <div className="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mb-6">
                 <CheckCircle2 className="w-10 h-10" />
