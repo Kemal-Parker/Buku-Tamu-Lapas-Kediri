@@ -114,6 +114,7 @@ export default function DashboardPage() {
             <thead className="bg-gray-50 text-gray-900 text-xs uppercase font-semibold">
               <tr>
                 <th className="px-6 py-4">Nama Tamu</th>
+                <th className="px-6 py-4">Foto</th>
                 <th className="px-6 py-4">Instansi</th>
                 <th className="px-6 py-4">Keperluan</th>
                 <th className="px-6 py-4">Waktu Masuk</th>
@@ -123,13 +124,13 @@ export default function DashboardPage() {
             <tbody className="divide-y divide-gray-100">
               {loading ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-8 text-center text-gray-500">
+                  <td colSpan={6} className="px-6 py-8 text-center text-gray-500">
                     Memuat data...
                   </td>
                 </tr>
               ) : guests.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-8 text-center text-gray-500">
+                  <td colSpan={6} className="px-6 py-8 text-center text-gray-500">
                     Tidak ada tamu aktif saat ini.
                   </td>
                 </tr>
@@ -139,6 +140,15 @@ export default function DashboardPage() {
                     <td className="px-6 py-4">
                       <div className="font-medium text-gray-900">{guest.name}</div>
                       <div className="text-xs text-gray-400">NIK: {guest.nik}</div>
+                    </td>
+                    <td className="px-6 py-4">
+                      {guest.photoUrl ? (
+                        <img src={guest.photoUrl} alt="Foto Tamu" className="w-12 h-12 rounded object-cover border border-gray-200" />
+                      ) : (
+                        <div className="w-12 h-12 rounded bg-gray-100 flex items-center justify-center border border-gray-200 text-gray-400">
+                          <UserCheck className="w-6 h-6" />
+                        </div>
+                      )}
                     </td>
                     <td className="px-6 py-4">{guest.instansi}</td>
                     <td className="px-6 py-4 max-w-xs truncate">{guest.keperluan}</td>

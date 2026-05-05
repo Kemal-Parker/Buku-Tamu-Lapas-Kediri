@@ -70,11 +70,9 @@ async function startServer() {
         }
       });
       
-      const { photoUrl: _, ...guestWithoutPhoto } = guest;
-      
       // Real-time update
-      io.emit('guest:checked-in', guestWithoutPhoto);
-      res.json(guestWithoutPhoto);
+      io.emit('guest:checked-in', guest);
+      res.json(guest);
     } catch (err: any) {
       console.error('Checkin error:', err);
       res.status(500).json({ error: 'Failed to check in' });
@@ -104,7 +102,7 @@ async function startServer() {
       const guests = await prisma.guest.findMany({
         where: { checkOut: null },
         orderBy: { checkIn: 'desc' },
-        select: { id: true, name: true, nik: true, instansi: true, keperluan: true, checkIn: true, checkOut: true, token: true }
+        select: { id: true, name: true, nik: true, instansi: true, keperluan: true, checkIn: true, checkOut: true, token: true, photoUrl: true }
       });
       res.json(guests);
     } catch (err) {
@@ -118,7 +116,7 @@ async function startServer() {
     try {
       const guests = await prisma.guest.findMany({
         orderBy: { checkIn: 'desc' },
-        select: { id: true, name: true, nik: true, instansi: true, keperluan: true, checkIn: true, checkOut: true, token: true }
+        select: { id: true, name: true, nik: true, instansi: true, keperluan: true, checkIn: true, checkOut: true, token: true, photoUrl: true }
       });
       res.json(guests);
     } catch (err) {
