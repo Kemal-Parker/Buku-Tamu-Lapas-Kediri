@@ -3,13 +3,22 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react-router';
+import { BrowserRouter as Router, Routes, Route, Link, useLocation, Navigate } from 'react-router';
 import DashboardPage from './pages/DashboardPage';
 import CheckInPage from './pages/CheckInPage';
 import HistoryPage from './pages/HistoryPage';
 import QRCodePage from './pages/QRCodePage';
-import { LayoutDashboard, History, QrCode, ClipboardList, Menu, X } from 'lucide-react';
+import LoginPage from './pages/LoginPage';
+import { LayoutDashboard, History, QrCode, ClipboardList, Menu, X, LogOut } from 'lucide-react';
 import { useEffect, useState } from 'react';
+
+function ProtectedRoute({ children }: { children: React.ReactNode }) {
+  const token = localStorage.getItem('adminToken');
+  if (!token) {
+    return <Navigate to="/login" replace />;
+  }
+  return <>{children}</>;
+}
 
 function AdminLayout({ children }: { children: React.ReactNode }) {
   const location = useLocation();
@@ -47,7 +56,7 @@ function AdminLayout({ children }: { children: React.ReactNode }) {
           </div>
           <button 
             onClick={() => setIsSidebarOpen(false)}
-            className="p-2 text-gray-500 hover:bg-gray-100 rounded-md -mt-2 -mr-2"
+            className="md:hidden p-2 text-gray-500 hover:bg-gray-100 rounded-md -mt-2 -mr-2"
           >
             <X className="w-5 h-5" />
           </button>
@@ -72,6 +81,18 @@ function AdminLayout({ children }: { children: React.ReactNode }) {
             );
           })}
         </nav>
+        <div className="p-4 border-t border-gray-200">
+          <button
+            onClick={() => {
+              localStorage.removeItem('adminToken');
+              window.location.href = '/login';
+            }}
+            className="flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium text-red-600 hover:bg-red-50 w-full transition-colors"
+          >
+            <LogOut className="w-5 h-5" />
+            Keluar
+          </button>
+        </div>
       </aside>
 
       {/* Main Content */}
@@ -105,11 +126,12 @@ export default function App() {
     <Router>
       <Routes>
         <Route path="/checkin" element={<CheckInPage />} />
+        <Route path="/login" element={<LoginPage />} />
         
         {/* Admin Routes */}
-        <Route path="/" element={<AdminLayout><DashboardPage /></AdminLayout>} />
-        <Route path="/history" element={<AdminLayout><HistoryPage /></AdminLayout>} />
-        <Route path="/qr" element={<AdminLayout><QRCodePage /></AdminLayout>} />
+        <Route path="/" element={<ProtectedRoute><AdminLayout><DashboardPage /></AdminLayout></ProtectedRoute>} />
+        <Route path="/history" element={<ProtectedRoute><AdminLayout><HistoryPage /></AdminLayout></ProtectedRoute>} />
+        <Route path="/qr" element={<ProtectedRoute><AdminLayout><QRCodePage /></AdminLayout></ProtectedRoute>} />
       </Routes>
     </Router>
   );

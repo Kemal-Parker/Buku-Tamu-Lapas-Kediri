@@ -23,7 +23,12 @@ export default function HistoryPage() {
 
   const fetchHistory = async () => {
     try {
-      const res = await fetch('/api/guests/history');
+      const token = localStorage.getItem('adminToken');
+      const res = await fetch('/api/guests/history', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
       const data = await res.json();
       if (res.ok && Array.isArray(data)) {
         setGuests(data);

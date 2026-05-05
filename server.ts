@@ -4,8 +4,10 @@ import { Server } from 'socket.io';
 import { createServer } from 'http';
 import { PrismaClient } from '@prisma/client';
 import path from 'path';
+import jwt from 'jsonwebtoken';
 
 const prisma = new PrismaClient();
+const JWT_SECRET = process.env.JWT_SECRET || 'lapas-kediri-secret-key';
 
 async function startServer() {
   const app = express();
@@ -20,6 +22,32 @@ async function startServer() {
 
   // --- API Routes ---
   
+  // Login Endpoint
+  app.post('/api/auth/login', (req, res) => {
+    const { username, password } = req.body;
+    if (username === 'lapaskediri' && password === 'kediri2026') {
+      const token = jwt.sign({ username, role: 'admin' }, JWT_SECRET, { expiresIn: '24h' });
+      res.json({ token });
+    } else {
+      res.status(401).json({ error: 'Username atau password salah' });
+    }
+  });
+
+  // Middleware to protect admin routes
+  const requireAdmin = (req: express.Request, res: express.Response, next: express.NextFunction) => {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+    const token = authHeader.split(' ')[1];
+    try {
+      jwt.verify(token, JWT_SECRET);
+      next();
+    } catch (err) {
+      return res.status(401).json({ error: 'Invalid token' });
+    }
+  };
+
   // Health
   app.get('/api/health', (req, res) => {
     res.json({ status: 'ok' });
@@ -51,7 +79,7 @@ async function startServer() {
   });
 
   // Check-out Guest
-  app.post('/api/guests/:id/checkout', async (req, res) => {
+  app.post('/api/guests/:id/checkout', requireAdmin, async (req, res) => {
     try {
       const { id } = req.params;
       const guest = await prisma.guest.update({
@@ -68,7 +96,7 @@ async function startServer() {
   });
 
   // Get active guests (inside LAPAS)
-  app.get('/api/guests/active', async (req, res) => {
+  app.get('/api/guests/active', requireAdmin, async (req, res) => {
     try {
       const guests = await prisma.guest.findMany({
         where: { checkOut: null },
@@ -82,7 +110,7 @@ async function startServer() {
   });
   
   // Get all guests (history)
-  app.get('/api/guests/history', async (req, res) => {
+  app.get('/api/guests/history', requireAdmin, async (req, res) => {
     try {
       const guests = await prisma.guest.findMany({
         orderBy: { checkIn: 'desc' }
@@ -95,7 +123,7 @@ async function startServer() {
   });
 
   // Generate QR Token
-  app.post('/api/qr/generate', async (req, res) => {
+  app.post('/api/qr/generate', requireAdmin, async (req, res) => {
     try {
       const { validHours = 24 } = req.body;
       // Using UUID as a simple secure token for now. In real app, might be signed JWT.

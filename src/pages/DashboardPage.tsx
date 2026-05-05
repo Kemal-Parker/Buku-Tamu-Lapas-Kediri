@@ -39,7 +39,12 @@ export default function DashboardPage() {
 
   const fetchGuests = async () => {
     try {
-      const res = await fetch('/api/guests/active');
+      const token = localStorage.getItem('adminToken');
+      const res = await fetch('/api/guests/active', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
       const data = await res.json();
       if (res.ok && Array.isArray(data)) {
         setGuests(data);
@@ -58,7 +63,13 @@ export default function DashboardPage() {
   const handleCheckout = async (guestId: string) => {
     if (!window.confirm('Proses check-out untuk tamu ini?')) return;
     try {
-      await fetch(`/api/guests/${guestId}/checkout`, { method: 'POST' });
+      const token = localStorage.getItem('adminToken');
+      await fetch(`/api/guests/${guestId}/checkout`, { 
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
       // Socket will handle UI update
     } catch (err) {
       alert('Gagal checkout');

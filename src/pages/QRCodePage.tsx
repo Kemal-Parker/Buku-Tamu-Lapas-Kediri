@@ -15,10 +15,12 @@ export default function QRCodePage() {
   const generateToken = async () => {
     setLoading(true);
     try {
+      const token = localStorage.getItem('adminToken');
       const res = await fetch('/api/qr/generate', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({ validHours: 24 })
       });
