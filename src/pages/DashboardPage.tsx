@@ -32,8 +32,14 @@ export default function DashboardPage() {
       setGuests((prev) => prev.filter(g => g.id !== updatedGuest.id));
     });
 
+    // Fallback polling every 5 seconds
+    const interval = setInterval(() => {
+      fetchGuests();
+    }, 5000);
+
     return () => {
       socket.disconnect();
+      clearInterval(interval);
     };
   }, []);
 

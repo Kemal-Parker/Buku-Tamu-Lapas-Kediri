@@ -18,7 +18,8 @@ async function startServer() {
     cors: { origin: '*' }
   });
 
-  app.use(express.json());
+  app.use(express.json({ limit: '50mb' }));
+  app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
   // --- API Routes ---
   
@@ -69,9 +70,11 @@ async function startServer() {
         }
       });
       
+      const { photoUrl: _, ...guestWithoutPhoto } = guest;
+      
       // Real-time update
-      io.emit('guest:checked-in', guest);
-      res.json(guest);
+      io.emit('guest:checked-in', guestWithoutPhoto);
+      res.json(guestWithoutPhoto);
     } catch (err: any) {
       console.error('Checkin error:', err);
       res.status(500).json({ error: 'Failed to check in' });
@@ -100,7 +103,8 @@ async function startServer() {
     try {
       const guests = await prisma.guest.findMany({
         where: { checkOut: null },
-        orderBy: { checkIn: 'desc' }
+        orderBy: { checkIn: 'desc' },
+        select: { id: true, name: true, nik: true, instansi: true, keperluan: true, checkIn: true, checkOut: true, token: true }
       });
       res.json(guests);
     } catch (err) {
@@ -113,7 +117,8 @@ async function startServer() {
   app.get('/api/guests/history', requireAdmin, async (req, res) => {
     try {
       const guests = await prisma.guest.findMany({
-        orderBy: { checkIn: 'desc' }
+        orderBy: { checkIn: 'desc' },
+        select: { id: true, name: true, nik: true, instansi: true, keperluan: true, checkIn: true, checkOut: true, token: true }
       });
       res.json(guests);
     } catch (err) {

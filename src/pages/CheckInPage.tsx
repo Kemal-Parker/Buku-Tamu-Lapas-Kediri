@@ -70,7 +70,12 @@ export default function CheckInPage() {
       if (res.ok) {
         setStep(3); // Success
       } else {
-        alert('Gagal check-in. Silakan coba lagi.');
+        try {
+          const errData = await res.json();
+          alert('Gagal check-in: ' + (errData.error || 'Silakan coba lagi.'));
+        } catch(e) {
+          alert('Gagal check-in. Silakan coba lagi.');
+        }
       }
     } catch (err) {
       alert('Terjadi kesalahan jaringan.');
