@@ -24,8 +24,8 @@ export default function DashboardPage() {
 
     const socket = io(); // Connects to same port
     
-    socket.on('guest:checked-in', (newGuest: Guest) => {
-      setGuests((prev) => [newGuest, ...prev]);
+    socket.on('guest:checked-in', () => {
+      fetchGuests();
     });
 
     socket.on('guest:checked-out', (updatedGuest: Guest) => {

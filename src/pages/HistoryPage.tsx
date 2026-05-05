@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { format, subDays, subWeeks, subMonths, isAfter } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
 import * as xlsx from 'xlsx';
-import { UserCheck } from 'lucide-react';
+import { UserCheck, Trash2 } from 'lucide-react';
 
 interface Guest {
   id: string;
@@ -48,6 +48,29 @@ export default function HistoryPage() {
     }
   };
 
+  const handleDelete = async (id: string, name: string) => {
+    if (!window.confirm(`Apakah Anda yakin ingin menghapus data riwayat tamu ${name}?`)) {
+      return;
+    }
+    try {
+      const token = localStorage.getItem('adminToken');
+      const res = await fetch(`/api/guests/${id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      if (res.ok) {
+        setGuests(prev => prev.filter(g => g.id !== id));
+      } else {
+        alert('Gagal menghapus riwayat');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Terjadi kesalahan jaringan');
+    }
+  };
+
   const getFilteredGuests = () => {
     const now = new Date();
     return guests.filter(g => {
@@ -76,6 +99,11 @@ export default function HistoryPage() {
   const filteredGuests = getFilteredGuests();
 
   const handleExport = () => {
+    const isIframe = window !== window.top;
+    if (isIframe) {
+      alert("Sistem mendeteksi aplikasi berjalan dalam mode preview. Untuk mengunduh Excel, silakan klik tombol 'Buka di Tab Baru' (ikon panah ke kanan atas) di pojok kanan atas browser Anda, lalu coba export kembali.");
+    }
+
     const exportData = filteredGuests.map(g => ({
       'Nama Tamu': g.name,
       'NIK': g.nik,
@@ -83,14 +111,28 @@ export default function HistoryPage() {
       'Keperluan': g.keperluan,
       'Waktu Masuk': format(new Date(g.checkIn), 'dd MMM yyyy HH:mm', { locale: idLocale }),
       'Waktu Keluar': g.checkOut ? format(new Date(g.checkOut), 'dd MMM yyyy HH:mm', { locale: idLocale }) : 'Masih aktif',
-      'Data Foto (Base64)': g.photoUrl ? 'Ada Foto' : 'Tidak Ada',
-      'Base64': g.photoUrl || '' // Includes base64 string in a separate column
+      'Data Foto': g.photoUrl ? 'Ada Foto' : 'Tidak Ada'
     }));
 
-    const worksheet = xlsx.utils.json_to_sheet(exportData);
-    const workbook = xlsx.utils.book_new();
-    xlsx.utils.book_append_sheet(workbook, worksheet, 'DataTamu');
-    xlsx.writeFile(workbook, `Laporan_Tamu_${format(new Date(), 'dd_MMM_yyyy')}.xlsx`);
+    try {
+      const worksheet = xlsx.utils.json_to_sheet(exportData);
+      const workbook = xlsx.utils.book_new();
+      xlsx.utils.book_append_sheet(workbook, worksheet, 'DataTamu');
+      
+      const excelBuffer = xlsx.write(workbook, { bookType: 'xlsx', type: 'array' });
+      const blob = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `Laporan_Tamu_${format(new Date(), 'dd_MMM_yyyy')}.xlsx`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      setTimeout(() => window.URL.revokeObjectURL(url), 100);
+    } catch (err) {
+      console.error("Export error:", err);
+      alert("Terjadi kesalahan saat mengekspor data.");
+    }
   };
 
   return (
@@ -138,18 +180,19 @@ export default function HistoryPage() {
                 <th className="px-6 py-4">Waktu Masuk</th>
                 <th className="px-6 py-4">Waktu Keluar</th>
                 <th className="px-6 py-4">Status</th>
+                <th className="px-6 py-4 text-right">Aksi</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {loading ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-8 text-center text-gray-500">
+                  <td colSpan={7} className="px-6 py-8 text-center text-gray-500">
                     Memuat data...
                   </td>
                 </tr>
               ) : filteredGuests.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-8 text-center text-gray-500">
+                  <td colSpan={7} className="px-6 py-8 text-center text-gray-500">
                     Tidak ada riwayat ditemukan.
                   </td>
                 </tr>
@@ -188,6 +231,15 @@ export default function HistoryPage() {
                           Aktif
                         </span>
                       )}
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <button
+                        onClick={() => handleDelete(guest.id, guest.name)}
+                        className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                        title="Hapus Riwayat"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
                     </td>
                   </tr>
                 ))

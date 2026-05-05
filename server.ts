@@ -71,7 +71,7 @@ async function startServer() {
       });
       
       // Real-time update
-      io.emit('guest:checked-in', guest);
+      io.emit('guest:checked-in', { id: guest.id });
       res.json(guest);
     } catch (err: any) {
       console.error('Checkin error:', err);
@@ -122,6 +122,17 @@ async function startServer() {
     } catch (err) {
       console.error('Fetch history error:', err);
       res.status(500).json({ error: 'Failed to fetch history' });
+    }
+  });
+
+  app.delete('/api/guests/:id', requireAdmin, async (req, res) => {
+    try {
+      const { id } = req.params;
+      await prisma.guest.delete({ where: { id } });
+      res.json({ success: true });
+    } catch (err) {
+      console.error('Delete guest error:', err);
+      res.status(500).json({ error: 'Failed to delete guest' });
     }
   });
 
